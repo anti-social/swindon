@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use quire::validate::{Nothing, Enum, Structure, Scalar, Mapping, Sequence};
+use quire::validate::{Numeric};
 use rustc_serialize::{Decoder, Decodable};
 
 use intern::DiskPoolName;
@@ -42,6 +43,8 @@ pub struct Static {
     pub extra_headers: HashMap<String, String>,
     pub strip_host_suffix: Option<String>,
     pub index_files: Vec<String>,
+    pub generate_index: bool,
+    pub generated_index_max_files: usize,
     // Computed values
     pub overrides_content_type: bool,
 }
@@ -90,6 +93,9 @@ pub fn validator<'x>() -> Structure<'x> {
     .member("extra_headers", Mapping::new(Scalar::new(), Scalar::new()))
     .member("strip_host_suffix", Scalar::new().optional())
     .member("index_files", Sequence::new(Scalar::new()))
+    .member("generate_index", Scalar::new().default(false))
+    .member("generated_index_max_files",
+        Numeric::new().min(0).default(100000))
 }
 
 pub fn single_file<'x>() -> Structure<'x> {
@@ -134,6 +140,8 @@ impl Decodable for Static {
             pub pool: DiskPoolName,
             pub extra_headers: HashMap<String, String>,
             pub index_files: Vec<String>,
+            pub generate_index: bool,
+            pub generated_index_max_files: usize,
             pub strip_host_suffix: Option<String>,
         }
         let int = Internal::decode(d)?;
@@ -146,6 +154,8 @@ impl Decodable for Static {
             pool: int.pool,
             extra_headers: int.extra_headers,
             index_files: int.index_files,
+            generate_index: int.generate_index,
+            generated_index_max_files: int.generated_index_max_files,
             strip_host_suffix: int.strip_host_suffix,
         })
     }
@@ -205,6 +215,8 @@ impl Decodable for VersionedStatic {
                 extra_headers: int.extra_headers.clone(),
                 index_files: Vec::new(),
                 strip_host_suffix: None,
+                generate_index: false,
+                generated_index_max_files: 0,
             }),
             versioned_root: int.versioned_root,
             plain_root: int.plain_root,

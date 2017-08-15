@@ -20,6 +20,15 @@ use handlers::files::FileError;
 use handlers::files::decode::decode_component;
 use handlers::files::pools::get_pool;
 
+quick_error! {
+    #[derive(Debug)]
+    enum DirError {
+        DirForbidden
+        Dir(files: Vec<String>)
+        DirOutOfLimit
+    }
+}
+
 
 #[cfg(unix)]
 struct PathOpen {
@@ -72,7 +81,7 @@ pub fn serve_dir<S: Transport>(settings: &Arc<Static>, mut inp: Input)
                             .and_then(|raw_body| file.write_into(raw_body))
                             .map(|raw_body| raw_body.done())
                             .map_err(FileError::Sendfile)
-                            .map_err(Error::custom))
+                            .map_err(DirError::custom))
                         as Reply<_>
                     } else {
                         Box::new(ok(e.done()))
@@ -84,7 +93,21 @@ pub fn serve_dir<S: Transport>(settings: &Arc<Static>, mut inp: Input)
                 // One of the known `Other` issues is when path refers to
                 // a directory rather than regular file
                 Err(ref err) if err.kind() == io::ErrorKind::Other => {
-                    Box::new(error_page(Status::Forbidden, e))
+                    match err.into_inner().downcast::<Error>() {
+                        Ok(DirError::DirForbidden) => {
+                            Box::new(error_page(Status::Forbidden, e))
+                        }
+                        Ok(DirError::Dir(items)) => {
+                            unimplemented!();
+                        }
+                        Ok(DirError::DirOutOfLimit) => {
+                            Box::new(error_page(Status::InternalError, e))
+                        }
+                        Err(e) => {
+                            warn!("Unknown file error {:?}: {}", path, e);
+                            Box::new(error_page(Status::InternalError, e))
+                        }
+                    }
                 }
                 // TODO(tailhook) find out if we want to expose other
                 // errors, for example "Permission denied" and "is a directory"
@@ -227,8 +250,12 @@ impl FileOpener for PathOpen {
                 {
                     let (f, mt, mm) = find_index(&self.path, &self.settings)?;
                     self.file = Some((wrap_file(f), mt, mm));
+                } else if self.settings.generate_index {
+                    unimplemented!();
                 } else {
-                    return Err(io::ErrorKind::Other.into());
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        DirError::DirForbidden));
                 }
             } else {
                 let mime = guess_mime_type(&self.path);

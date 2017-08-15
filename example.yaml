@@ -10,6 +10,7 @@ routing:
   localhost/empty.gif: empty-gif
   localhost/sources: src
   localhost/websocket.html: websocket-echo-static
+  localhost/websocket/: websocket-echo-static
   localhost/echo: websocket-echo-html
   localhost/websocket-echo: websocket-echo
   example.com: example-chat-http
@@ -54,6 +55,7 @@ handlers:
   websocket-echo-static: !Static
     mode: relative_to_domain_root
     path: /work/public
+    generate-index: true
     text-charset: utf-8
     extra-headers: *cool-headers
 

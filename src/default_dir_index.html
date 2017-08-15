@@ -1,0 +1,24 @@
+## syntax: indent
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Listing of the directory {{ path }}</title>
+  </head>
+  <body>
+    <ul>
+      ## for entry in entries
+      <li>
+        ## if entry.is_dir
+          <a href="{{ path }}/{{ file.name }}/">{{ file.name }}/</a>
+        ## else
+          <a href="{{ path }}/{{ file.name }}">{{ file.name }}</a>
+        ## endif
+        {# TODO(tailhook) add some file attributes #}
+      </li>
+      ## endfor
+    </ul>
+    <p>Yours faithfully,<br>
+        swindon web server
+    </p>
+  </body>
+</html>
