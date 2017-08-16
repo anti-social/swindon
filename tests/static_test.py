@@ -142,3 +142,11 @@ async def test_url_with_query(
             '"{}/assets/static_file.txt"'.format(TESTS_DIR)
     else:
         assert 'X-Swindon-File-Path' not in resp.headers
+
+
+async def test_last_modified(swindon, http_request, debug_routing, TESTS_DIR):
+    url = swindon.url / 'static' / 'static_file.txt'
+    resp, data = await http_request(url)
+    assert resp.status == 200
+    assert resp.headers['Content-Type'] == 'text/plain'
+    assert 'Last-Modified' in resp.headers
